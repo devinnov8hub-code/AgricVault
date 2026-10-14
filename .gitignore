@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+.vercel/
+*.tsbuildinfo
+
+# Environment — never commit these
+.env
+.env.*
+.env.example
+!.env.example
+
+# Service-account keys. Never commit one.
+*serviceAccount*.json
+*firebase-adminsdk*.json
+.firebase/
+firebase-debug.log*
+database-debug.log*
+firestore-debug.log*
+ui-debug.log*
+
+# Editor and OS
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# Logs
+*.log
+npm-debug.log*

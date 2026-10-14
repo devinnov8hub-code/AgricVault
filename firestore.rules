@@ -1,0 +1,232 @@
+rules_version = '2';
+
+// ============================================================================
+// AgriVault — Firestore security rules
+//
+// THIS FILE IS THE AUTHORISATION LAYER. The route guards in the React app are
+// a convenience for the person using it; these rules are what actually stop
+// someone reading data that is not theirs. If a rule here is wrong, no amount
+// of care in the UI will save you.
+//
+// The two promises this file keeps:
+//
+//   1. A farmer sees their own records and nothing else.
+//   2. A farmer NEVER sees hardware data — no temperature, no humidity, no
+//      thresholds, no device, no alert. They get a verdict in
+//      config/conditions and that is all.
+//
+// Test changes before deploying:
+//   firebase emulators:start --only firestore
+//   npm run rules:deploy
+// ============================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---- Helpers ----------------------------------------------------------
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function profile() {
+      return get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data;
+    }
+
+    function profileExists() {
+      return exists(/databases/$(database)/documents/profiles/$(request.auth.uid));
+    }
+
+    // An admin must also be active: suspending the account takes access away
+    // immediately, without having to find and change every rule.
+    function isAdmin() {
+      return signedIn()
+        && profileExists()
+        && profile().role == 'admin'
+        && profile().status == 'active';
+    }
+
+    function isSelf(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function owns(resourceData) {
+      return signedIn() && resourceData.farmerId == request.auth.uid;
+    }
+
+    // Only a verified email may write anything. Reading is allowed earlier so
+    // the "check your inbox" screen can still show the person their own name.
+    function verified() {
+      return signedIn() && (request.auth.token.email_verified == true || isAdmin());
+    }
+
+    function unchanged(field) {
+      return request.resource.data[field] == resource.data[field];
+    }
+
+    // ---- profiles ---------------------------------------------------------
+
+    match /profiles/{uid} {
+      allow get: if isSelf(uid) || isAdmin();
+      // Listing profiles is an admin action; a farmer has no directory.
+      allow list: if isAdmin();
+
+      // Self-signup. Role and status are pinned so nobody can register
+      // themselves as an admin by editing the request — the single most
+      // important line in this file.
+      allow create: if isSelf(uid)
+        && request.resource.data.role == 'farmer'
+        && request.resource.data.status == 'active'
+        && request.resource.data.email == request.auth.token.email;
+
+      // A person may edit their own details, but never their own role or
+      // status. Only an admin can change those.
+      allow update: if (isSelf(uid) && verified() && unchanged('role') && unchanged('status'))
+        || isAdmin();
+
+      allow delete: if isAdmin();
+    }
+
+    // ---- config -----------------------------------------------------------
+    //
+    // Split across documents on purpose: Firestore rules work per document, so
+    // the tariff a farmer needs and the thresholds they must not see cannot
+    // live in the same place.
+
+    match /config/facility {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    match /config/thresholds {
+      // ADMIN ONLY. Climate bands and alert contacts are facility operations.
+      allow read, write: if isAdmin();
+    }
+
+    match /config/conditions {
+      // The farmer-facing verdict: a single word and a timestamp, no numbers.
+      // Written only by the server (service account bypasses these rules).
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    match /config/{other} {
+      allow read, write: if isAdmin();
+    }
+
+    // ---- counters ---------------------------------------------------------
+    //
+    // Reference sequences (ST-, BK-, WD-, RC-). A farmer has to increment one
+    // to request a withdrawal, so writes are open to any verified user; the
+    // values are meaningless on their own.
+
+    match /counters/{prefix} {
+      allow read, write: if verified();
+    }
+
+    // ---- cold rooms and hardware ------------------------------------------
+
+    match /storageUnits/{id} {
+      // Reference data. Knowing "Cold room 1" exists tells a farmer nothing
+      // about the equipment in it.
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    match /devices/{id} {
+      // ADMIN ONLY. The rig, its status and the thresholds it runs.
+      allow read, write: if isAdmin();
+    }
+
+    match /sensorReadings/{id} {
+      // ADMIN ONLY. Written by the server; never from a browser.
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /alerts/{id} {
+      // ADMIN ONLY.
+      allow read: if isAdmin();
+      allow update: if isAdmin();
+      allow create, delete: if false;
+    }
+
+    // ---- storage lifecycle ------------------------------------------------
+
+    // A single `read` rule naming farmerId is deliberate, and is the part most
+    // easily got wrong. Firestore evaluates a list query against this rule and
+    // refuses the whole query unless it can PROVE every result would pass —
+    // which it can only do when the query itself filters on farmerId. So a
+    // farmer's `where('farmerId','==',uid)` succeeds and an unfiltered read is
+    // rejected by the server. Splitting this into get/list with a blanket
+    // `signedIn()` on list would hand every farmer the whole collection.
+    match /storageBatches/{id} {
+      allow read: if isAdmin() || owns(resource.data);
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /bookings/{id} {
+      allow read: if isAdmin() || owns(resource.data);
+      allow create: if verified()
+        && (isAdmin() || request.resource.data.farmerId == request.auth.uid);
+      allow update, delete: if isAdmin();
+    }
+
+    match /withdrawalRequests/{id} {
+      allow read: if isAdmin() || owns(resource.data);
+
+      // A farmer raises a request against their own batch, and it starts
+      // pending — they cannot approve themselves.
+      allow create: if verified()
+        && request.resource.data.farmerId == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && get(/databases/$(database)/documents/storageBatches/$(request.resource.data.batchId))
+             .data.farmerId == request.auth.uid;
+
+      // Only an admin decides. Stock movement follows from that decision.
+      allow update: if isAdmin();
+      allow delete: if isAdmin()
+        || (owns(resource.data) && resource.data.status == 'pending');
+    }
+
+    // ---- money ------------------------------------------------------------
+
+    match /payments/{id} {
+      allow read: if isAdmin() || owns(resource.data);
+      // Receipts are raised and settled by the facility, never by the payer.
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ---- messaging --------------------------------------------------------
+
+    match /notifications/{id} {
+      // Same pattern: the query must filter on recipientId to be allowed.
+      allow read: if signedIn() && resource.data.recipientId == request.auth.uid;
+
+      // Marking your own as read is the only change a recipient may make.
+      allow update: if signedIn()
+        && resource.data.recipientId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readAt']);
+
+      // Any signed-in writer may raise a notification for someone else — the
+      // app does this when a farmer requests a withdrawal, so the desk hears
+      // about it. Content is not trusted; it is only ever displayed as text.
+      allow create: if verified();
+      allow delete: if isAdmin();
+    }
+
+    match /emailLog/{id} {
+      // ADMIN ONLY, and written only by the server route that sends the mail.
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // ---- default deny -----------------------------------------------------
+    //
+    // Anything not named above is closed. Add collections deliberately.
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

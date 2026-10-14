@@ -1,0 +1,114 @@
+@import "tailwindcss";
+@import "./tokens.css";
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    border-color: var(--color-line);
+  }
+
+  html {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-size: var(--text-sm);
+    line-height: var(--text-sm--line-height);
+    font-weight: 400;
+  }
+
+  /* Headings carry weight through size and 600, never through a colour shift. */
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--color-ink);
+  }
+
+  /* Tabular figures everywhere numbers are compared down a column. */
+  table,
+  [data-numeric] {
+    font-variant-numeric: tabular-nums;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-brand-400);
+    outline-offset: 2px;
+  }
+
+  ::placeholder {
+    color: var(--color-ink-subtle);
+  }
+
+  /* Native controls inherit the type system rather than the OS default. */
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+    color: inherit;
+  }
+}
+
+@layer components {
+  /* Material Symbols Rounded. Usage: <span class="icon">check_circle</span>
+     Size is controlled with font-size utilities (text-base, text-lg …). */
+  .icon {
+    font-family: "Material Symbols Rounded";
+    font-weight: 400;
+    font-style: normal;
+    font-size: 20px;
+    line-height: 1;
+    display: inline-block;
+    white-space: nowrap;
+    direction: ltr;
+    letter-spacing: normal;
+    text-transform: none;
+    word-wrap: normal;
+    -webkit-font-feature-settings: "liga";
+    font-feature-settings: "liga";
+    -webkit-font-smoothing: antialiased;
+    user-select: none;
+    font-variation-settings:
+      "FILL" var(--icon-fill, 0),
+      "wght" 400,
+      "GRAD" 0,
+      "opsz" 24;
+  }
+
+  .icon-filled {
+    --icon-fill: 1;
+  }
+
+  /* Identifiers, money, weights and readings. Never body copy. */
+  .mono {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-neutral-300) transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

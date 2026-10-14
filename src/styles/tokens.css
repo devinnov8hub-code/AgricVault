@@ -1,0 +1,104 @@
+/* ---------------------------------------------------------------------------
+ * AgriVault design tokens
+ *
+ * Three rules keep this system calm. Break them and the UI stops looking
+ * considered:
+ *
+ *  1. Type        Archivo for everything. IBM Plex Mono ONLY for identifiers,
+ *                 money, weights and sensor readings — never for prose.
+ *                 Weights: 400 body, 500 emphasis, 600 headings. Nothing else.
+ *  2. Colour      One brand hue plus neutral greys. The three status colours
+ *                 are reserved for state (ok / warning / critical) and are
+ *                 never used decoratively.
+ *  3. Spacing     4, 8, 12, 16, 24, 32 only — i.e. Tailwind steps
+ *                 1, 2, 3, 4, 6, 8. Nothing in between.
+ * ------------------------------------------------------------------------- */
+
+@theme {
+  /* -- Type ---------------------------------------------------------------- */
+  --font-sans: "Archivo", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
+
+  --text-2xs: 0.6875rem; /* 11px — table meta, timestamps */
+  --text-2xs--line-height: 1rem;
+  --text-xs: 0.75rem; /* 12px — labels, helper text  */
+  --text-xs--line-height: 1.125rem;
+  --text-sm: 0.875rem; /* 14px — body default         */
+  --text-sm--line-height: 1.375rem;
+  --text-base: 1rem; /* 16px — section headings     */
+  --text-base--line-height: 1.5rem;
+  --text-lg: 1.125rem; /* 18px — page titles          */
+  --text-lg--line-height: 1.625rem;
+  --text-xl: 1.375rem; /* 22px — stat values          */
+  --text-xl--line-height: 1.75rem;
+  --text-2xl: 1.75rem; /* 28px — hero figures         */
+  --text-2xl--line-height: 2.125rem;
+
+  /* -- Brand --------------------------------------------------------------- */
+  --color-brand-50: #f7f2fb;
+  --color-brand-100: #efe4f6;
+  --color-brand-200: #dcc6ea;
+  --color-brand-300: #c49eda;
+  --color-brand-400: #9d5ccb;
+  --color-brand-500: #8346ae;
+  --color-brand-600: #6a3a8c;
+  --color-brand-700: #552e70;
+  --color-brand-800: #402255;
+  --color-brand-900: #2b1639;
+
+  /* -- Neutrals ------------------------------------------------------------ */
+  --color-neutral-0: #ffffff;
+  --color-neutral-50: #fafafb;
+  --color-neutral-100: #f4f4f6;
+  --color-neutral-200: #e8e8ec;
+  --color-neutral-300: #d4d4da;
+  --color-neutral-400: #a1a1ac;
+  --color-neutral-500: #71717d;
+  --color-neutral-600: #52525c;
+  --color-neutral-700: #3f3f46;
+  --color-neutral-800: #27272e;
+  --color-neutral-900: #18181c;
+
+  /* -- Status (state only, never decoration) ------------------------------- */
+  --color-ok: #1c7c54;
+  --color-ok-soft: #e9f4ef;
+  --color-warn: #b45309;
+  --color-warn-soft: #fdf2e5;
+  --color-critical: #b42318;
+  --color-critical-soft: #fbebe9;
+
+  /* -- Radius -------------------------------------------------------------- */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  /* -- Elevation (one soft shadow, used sparingly) ------------------------- */
+  --shadow-card: 0 1px 2px rgb(24 24 28 / 0.04);
+  --shadow-raised: 0 8px 24px -8px rgb(24 24 28 / 0.16);
+
+  /* -- Layout -------------------------------------------------------------- */
+  --spacing-sidebar: 15rem;
+  --spacing-topbar: 4rem;
+}
+
+/* ---------------------------------------------------------------------------
+ * Semantic aliases. Components reference these, not the raw ramp, so a
+ * re-theme means editing this block alone.
+ * ------------------------------------------------------------------------- */
+@theme {
+  --color-canvas: var(--color-neutral-100);
+  --color-surface: var(--color-neutral-0);
+  --color-surface-sunken: var(--color-neutral-50);
+  --color-surface-brand: var(--color-brand-600);
+  --color-surface-brand-soft: var(--color-brand-50);
+
+  --color-line: var(--color-neutral-200);
+  --color-line-strong: var(--color-neutral-300);
+
+  --color-ink: var(--color-neutral-900);
+  --color-ink-muted: var(--color-neutral-500);
+  --color-ink-subtle: var(--color-neutral-400);
+  --color-ink-inverse: var(--color-neutral-0);
+  --color-ink-brand: var(--color-brand-600);
+}

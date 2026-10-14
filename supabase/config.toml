@@ -1,0 +1,117 @@
+project_id = "agrivault"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 17
+
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql"]
+
+[studio]
+enabled = true
+port = 54323
+
+# Catches outgoing mail locally so the templates can be reviewed without
+# spending Resend quota. Open http://localhost:54324.
+[inbucket]
+enabled = true
+port = 54324
+
+[storage]
+enabled = true
+file_size_limit = "2MiB"
+
+[storage.buckets.avatars]
+public = true
+file_size_limit = "2MiB"
+allowed_mime_types = ["image/png", "image/jpeg"]
+
+[auth]
+enabled = true
+site_url = "env(SITE_URL)"
+additional_redirect_urls = ["http://localhost:5173", "http://localhost:5173/auth/callback"]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10
+enable_signup = true
+enable_anonymous_sign_ins = false
+minimum_password_length = 8
+password_requirements = "lower_upper_letters_digits"
+
+[auth.email]
+enable_signup = true
+enable_confirmations = true
+double_confirm_changes = true
+secure_password_change = true
+otp_length = 6
+otp_expiry = 3600
+max_frequency = "20s"
+
+# ---------------------------------------------------------------------------
+# Resend over SMTP. Supabase Auth sends confirmation, recovery, magic-link,
+# invite, email-change and reauthentication mail through this.
+#
+# Set in .env (local) or the dashboard (hosted):
+#   SMTP_USER=resend
+#   SMTP_PASSWORD=<Resend API key, re_...>
+#   SMTP_SENDER=no-reply@<your verified domain>
+#
+# The host and port below are Resend's; do not change them.
+# ---------------------------------------------------------------------------
+[auth.email.smtp]
+enabled = true
+host = "smtp.resend.com"
+port = 465
+user = "env(SMTP_USER)"
+pass = "env(SMTP_PASSWORD)"
+admin_email = "env(SMTP_SENDER)"
+sender_name = "AgriVault"
+
+# Templates are generated from the shared email design: npm run emails:auth
+[auth.email.template.confirmation]
+subject = "Confirm your AgriVault email"
+content_path = "./templates/confirm-signup.html"
+
+[auth.email.template.invite]
+subject = "You have been invited to AgriVault"
+content_path = "./templates/invite.html"
+
+[auth.email.template.magic_link]
+subject = "Your AgriVault sign-in link"
+content_path = "./templates/magic-link.html"
+
+[auth.email.template.recovery]
+subject = "Reset your AgriVault password"
+content_path = "./templates/recovery.html"
+
+[auth.email.template.email_change]
+subject = "Confirm your new AgriVault email"
+content_path = "./templates/email-change.html"
+
+[auth.email.template.reauthentication]
+subject = "Your AgriVault verification code"
+content_path = "./templates/reauthentication.html"
+
+[edge_runtime]
+enabled = true
+policy = "oneshot"
+
+# Devices and schedulers authenticate with their own keys, so these two skip
+# the platform's JWT check and verify the caller themselves.
+[functions.send-email]
+verify_jwt = false
+
+[functions.ingest-reading]
+verify_jwt = false
+
+[functions.sync-readings]
+verify_jwt = false

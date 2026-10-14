@@ -1,0 +1,27 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "$store": {
+      "data": {
+        ".read": false,
+        ".write": false,
+        ".validate": "newData.hasChildren(['temp', 'humidity', 'timestamp'])",
+        "temp": { ".validate": "newData.isNumber()" },
+        "humidity": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100" },
+        "isActive": { ".validate": "newData.isBoolean()" },
+        "onionStorageId": { ".validate": "newData.isString()" },
+        "timestamp": { ".validate": "newData.isString()" }
+      },
+      "settings": {
+        ".read": false,
+        ".write": false,
+        "highTempThreshold": { ".validate": "newData.isNumber()" },
+        "lowTempThreshold": { ".validate": "newData.isNumber()" },
+        "highHumThreshold": { ".validate": "newData.isNumber()" },
+        "lowHumThreshold": { ".validate": "newData.isNumber()" }
+      }
+    }
+  }
+}
